@@ -14,6 +14,7 @@
 #include <Metal/Metal.hpp>
 #include <AppKit/AppKit.hpp>
 #include <MetalKit/MetalKit.hpp>
+#include <glm/glm.hpp>
 
 #include <simd/simd.h>
 #include <cmath>
@@ -236,6 +237,7 @@ void Renderer::buildShaders() {
 
     const char* shaderSrc = R"(
         #include <metal_stdlib>
+        #include <glm/glm.hpp>
         using namespace metal;
 
         struct v2f {
@@ -255,8 +257,18 @@ void Renderer::buildShaders() {
         v2f vertex vertexMain(device const VertexData* vertexData [[buffer(0)]], constant FrameData* frameData [[buffer(1)]], uint vertexId [[vertex_id]]) {
             float a = frameData->angle;
             float3x3 rotationMatrix = float3x3(cos(a), 0, sin(a), 0, 1, 0, -sin(a), 0, cos(a));
+
+            // Try to use glm.
+            glm::mat4 view = glm::lookAt(
+                glm::vec3(0.0f, 0.0f, 3.0f),
+                glm::vec3(0.0f, 0.0f, 0.0f),
+                glm::vec3(0.0f, 1.0f, 0.0f)
+            );
+            glm::mat4 projection = glm::perspective(glm::radians(45.0f), 4.0f/3.0f, 0.1f, 100.0f);
+
             v2f o;
-            o.position = float4(rotationMatrix * vertexData->positions[vertexId], 1.0);
+            // o.position = float4(rotationMatrix * vertexData->positions[vertexId], 1.0);
+            o.position = projection * view * vertexData->positions[vertexId];
             o.color = half3(vertexData->colors[vertexId]);
             return o;
         }
